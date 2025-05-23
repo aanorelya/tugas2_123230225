@@ -1,0 +1,213 @@
+ import javax.swing.*;
+import javax.swing.table.DefaultTableModel;
+import java.awt.event.*;
+import java.util.ArrayList;
+
+public class Perpustakaan_Yogyakarta extends JFrame {
+    private JTextField tfID, tfJudul, tfGenre, tfPenulis, tfPenerbit, tfLokasi, tfStok, tfSearch;
+    private JComboBox<String> cbKategori;
+    private JTable tabel;
+    private DefaultTableModel model;
+    private ArrayList<Buku> listBuku = new ArrayList<>();
+    private int idOtomatis = 1;
+
+    public Perpustakaan_Yogyakarta() {
+        setTitle("Pendataan Buku Perpustakaan");
+        setSize(900, 600);
+        setLayout(null);
+        setDefaultCloseOperation(EXIT_ON_CLOSE);
+
+        // Label dan TextField
+        JLabel[] lbl = {
+            new JLabel("ID Buku"), new JLabel("Judul"), new JLabel("Genre"), new JLabel("Penulis"),
+            new JLabel("Penerbit"), new JLabel("Lokasi"), new JLabel("Stok")
+        };
+        JTextField[] txt = {
+            tfID = new JTextField(), tfJudul = new JTextField(), tfGenre = new JTextField(),
+            tfPenulis = new JTextField(), tfPenerbit = new JTextField(), tfLokasi = new JTextField(), tfStok = new JTextField()
+        };
+
+        for (int i = 0; i < lbl.length; i++) {
+            lbl[i].setBounds(20, 20 + i * 30, 80, 25);
+            txt[i].setBounds(100, 20 + i * 30, 200, 25);
+            add(lbl[i]);
+            add(txt[i]);
+        }
+
+        // ID Buku tidak bisa diedit
+        tfID.setEditable(false);
+
+        // Tombol
+        JButton btnTambah = new JButton("Tambah");
+        JButton btnUbah = new JButton("Ubah");
+        JButton btnHapus = new JButton("Hapus");
+        JButton btnTampilkan = new JButton("Tampilkan Semua");
+        JButton btnCari = new JButton("Cari");
+
+        btnTambah.setBounds(320, 20, 130, 25);
+        btnUbah.setBounds(320, 50, 130, 25);
+        btnHapus.setBounds(320, 80, 130, 25);
+        btnTampilkan.setBounds(320, 110, 130, 25);
+
+        add(btnTambah); add(btnUbah); add(btnHapus); add(btnTampilkan);
+
+        tfSearch = new JTextField();
+        tfSearch.setBounds(480, 20, 160, 25);
+        add(tfSearch);
+
+        cbKategori = new JComboBox<>(new String[]{"Judul", "Genre", "Penulis", "Penerbit"});
+        cbKategori.setBounds(650, 20, 150, 25);
+        add(cbKategori);
+
+        btnCari.setBounds(650, 50, 150, 25);
+        add(btnCari);
+
+        // Tabel
+        model = new DefaultTableModel(new String[]{
+            "ID", "Judul", "Genre", "Penulis", "Penerbit", "Lokasi", "Stok"
+        }, 0);
+        tabel = new JTable(model);
+        JScrollPane scroll = new JScrollPane(tabel);
+        scroll.setBounds(20, 230, 840, 300);
+        add(scroll);
+
+        // Tambah data awal
+        tambahDataAwal();
+        tampilkanSemua();
+
+        // Klik Tabel
+        tabel.addMouseListener(new MouseAdapter() {
+            public void mouseClicked(MouseEvent e) {
+                int i = tabel.getSelectedRow();
+                if (i != -1) {
+                    tfID.setText(model.getValueAt(i, 0).toString());
+                    tfJudul.setText(model.getValueAt(i, 1).toString());
+                    tfGenre.setText(model.getValueAt(i, 2).toString());
+                    tfPenulis.setText(model.getValueAt(i, 3).toString());
+                    tfPenerbit.setText(model.getValueAt(i, 4).toString());
+                    tfLokasi.setText(model.getValueAt(i, 5).toString());
+                    tfStok.setText(model.getValueAt(i, 6).toString());
+                }
+            }
+        });
+
+        // Aksi Tombol
+        btnTambah.addActionListener(e -> {
+            try {
+                String judul = tfJudul.getText();
+                String genre = tfGenre.getText();
+                String penulis = tfPenulis.getText();
+                String penerbit = tfPenerbit.getText();
+                String lokasi = tfLokasi.getText();
+                int stok = Integer.parseInt(tfStok.getText());
+
+                listBuku.add(new Buku(idOtomatis, judul, genre, penulis, penerbit, lokasi, stok));
+                idOtomatis++;
+                tampilkanSemua();
+                resetForm();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(null, "Input tidak valid!");
+            }
+        });
+
+        btnUbah.addActionListener(e -> {
+            try {
+                int id = Integer.parseInt(tfID.getText());
+                for (Buku b : listBuku) {
+                    if (b.id == id) {
+                        b.judul = tfJudul.getText();
+                        b.genre = tfGenre.getText();
+                        b.penulis = tfPenulis.getText();
+                        b.penerbit = tfPenerbit.getText();
+                        b.lokasi = tfLokasi.getText();
+                        b.stok = Integer.parseInt(tfStok.getText());
+                        break;
+                    }
+                }
+                tampilkanSemua();
+                resetForm();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(null, "Pilih data dari tabel terlebih dahulu!");
+            }
+        });
+
+        btnHapus.addActionListener(e -> {
+            try {
+                int id = Integer.parseInt(tfID.getText());
+                listBuku.removeIf(b -> b.id == id);
+                tampilkanSemua();
+                resetForm();
+            } catch (Exception ex) {
+                JOptionPane.showMessageDialog(null, "Pilih data dari tabel terlebih dahulu!");
+            }
+        });
+
+        btnTampilkan.addActionListener(e -> tampilkanSemua());
+
+        btnCari.addActionListener(e -> {
+            String keyword = tfSearch.getText().toLowerCase();
+            String kategori = cbKategori.getSelectedItem().toString();
+            model.setRowCount(0);
+
+            for (Buku b : listBuku) {
+                boolean cocok = switch (kategori) {
+                    case "Judul" -> b.judul.toLowerCase().contains(keyword);
+                    case "Genre" -> b.genre.toLowerCase().contains(keyword);
+                    case "Penulis" -> b.penulis.toLowerCase().contains(keyword);
+                    case "Penerbit" -> b.penerbit.toLowerCase().contains(keyword);
+                    default -> false;
+                };
+                if (cocok) {
+                    model.addRow(new Object[]{
+                        b.id, b.judul, b.genre, b.penulis, b.penerbit, b.lokasi, b.stok
+                    });
+                }
+            }
+        });
+    }
+
+    private void tambahDataAwal() {
+        listBuku.add(new Buku(idOtomatis++, "Laskar Pelangi", "Novel", "Andrea Hirata", "Bentang", "Rak A1", 10));
+        listBuku.add(new Buku(idOtomatis++, "Negeri 5 Menara", "Motivasi", "Ahmad Fuadi", "Gramedia", "Rak B2", 7));
+        listBuku.add(new Buku(idOtomatis++, "Bumi", "Fiksi", "Tere Liye", "Gramedia", "Rak C3", 5));
+    }
+
+    private void tampilkanSemua() {
+        model.setRowCount(0);
+        for (Buku b : listBuku) {
+            model.addRow(new Object[]{
+                b.id, b.judul, b.genre, b.penulis, b.penerbit, b.lokasi, b.stok
+            });
+        }
+    }
+
+    private void resetForm() {
+        tfID.setText("");
+        tfJudul.setText("");
+        tfGenre.setText("");
+        tfPenulis.setText("");
+        tfPenerbit.setText("");
+        tfLokasi.setText("");
+        tfStok.setText("");
+    }
+
+    public static void main(String[] args) {
+        new Perpustakaan_Yogyakarta().setVisible(true);
+    }
+
+    static class Buku {
+        int id;
+        String judul, genre, penulis, penerbit, lokasi;
+        int stok;
+
+        Buku(int id, String judul, String genre, String penulis, String penerbit, String lokasi, int stok) {
+            this.id = id;
+            this.judul = judul;
+            this.genre = genre;
+            this.penulis = penulis;
+            this.penerbit = penerbit;
+            this.lokasi = lokasi;
+            this.stok = stok;
+        }
+    }
+}
